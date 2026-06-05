@@ -1,0 +1,33 @@
+{
+  "name": "ppl",
+  "version": "1.0.0",
+  "description": "Code for \"Principles of Programming Languages\" course",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "coverage": "jest --coverage",
+    "L1": "ts-node src/L1/L1.ts",
+    "L3": "ts-node src/L3/L3.ts",
+    "L4": "ts-node src/L4/L4.ts",
+    "L5": "ts-node src/L5/L5.ts",
+    "L7": "ts-node src/cps/L7.ts",
+    "repl": "ts-node src/cli/repl.ts"
+  },
+  "keywords": [],
+  "author": "Michael Elhadad",
+  "license": "MIT",
+  "dependencies": {
+    "ramda": "^0.32.0",
+    "s-expression": "^3.1.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.2.3",
+    "@types/ramda": "^0.31.1",
+    "jest": "^30.2.0",
+    "jest-extended": "^7.0.0",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
