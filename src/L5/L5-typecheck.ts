@@ -54,7 +54,6 @@ export const typeofExp = (exp: Parsed, tenv: TEnv): Result<TExp> =>
     isLetrecExp(exp) ? typeofLetrec(exp, tenv) :
     isDefineExp(exp) ? typeofDefine(exp, tenv) :
     isProgram(exp) ? typeofProgram(exp, tenv) :
-    // TODO: isSetExp(exp) isLitExp(exp)
     makeFailure(`Unknown type: ${format(exp)}`);
 
 // Purpose: Compute the type of a sequence of expressions
@@ -217,8 +216,21 @@ export const typeofLetrec = (exp: LetrecExp, tenv: TEnv): Result<TExp> => {
 //   (define (var : texp) val)
 //   If typeof(exp.val, tenv) = texp
 //   Then typeof(exp) = void
-export const typeofDefine = (exp: DefineExp, tenv: TEnv): Result<VoidTExp> =>
-    makeFailure("HW3 2.1 - Implement this function");
+/*
+notes:
+bind gets a result<T> and function which takes the extracted param from result and does 
+something with it.
+constraint is true or false, and if true so define texp void...otherwise error.
+_ for idc
+*/
+export const typeofDefine = (exp: DefineExp, tenv: TEnv): Result<VoidTExp> => {
+    const constarint = bind(typeofExp(exp.val, tenv), (valT : TExp) =>
+                                        checkEqualType(exp.var.texp, valT, exp));
+    return bind(constarint, (isEqual : Boolean) => makeOk(makeVoidTExp()));
+};
+
+
+
 
 // Purpose: compute the type of a program
 // Thread the TEnv through top-level expressions. A define extends the TEnv
