@@ -221,7 +221,7 @@ notes:
 bind gets a result<T> and function which takes the extracted param from result and does 
 something with it.
 constraint is true or false, and if true so define texp void...otherwise error.
-_ for idc
+_ for idc aka isequal:boolean
 */
 export const typeofDefine = (exp: DefineExp, tenv: TEnv): Result<VoidTExp> => {
     const constarint = bind(typeofExp(exp.val, tenv), (valT : TExp) =>
