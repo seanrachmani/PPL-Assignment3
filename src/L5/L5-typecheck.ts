@@ -229,7 +229,7 @@ _ for idc aka isequal:boolean
 export const typeofDefine = (exp: DefineExp, tenv: TEnv): Result<VoidTExp> => {
     const constarint = bind(typeofExp(exp.val, tenv), (valT : TExp) =>
                                         checkEqualType(exp.var.texp, valT, exp));
-    return bind(constarint, (isEqual : Boolean) => makeOk(makeVoidTExp()));
+    return bind(constarint, (isEqual : boolean) => makeOk(makeVoidTExp()));
 };
 
 
