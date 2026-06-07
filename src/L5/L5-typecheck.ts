@@ -211,6 +211,9 @@ export const typeofLetrec = (exp: LetrecExp, tenv: TEnv): Result<TExp> => {
     return bind(constraints, _ => typeofExps(exp.body, tenvBody));
 };
 
+/*
+==========part 2.1============
+*/
 // Purpose: compute the type of a define
 // Typing rule:
 //   (define (var : texp) val)
@@ -230,11 +233,33 @@ export const typeofDefine = (exp: DefineExp, tenv: TEnv): Result<VoidTExp> => {
 };
 
 
-
-
+/*
+==========part 2.2============
+Notes:
+1)we want something like typeofExps but add support extend env with define 
+*/
 // Purpose: compute the type of a program
 // Thread the TEnv through top-level expressions. A define extends the TEnv
 // for the expressions that follow it; the program type is the type of the
 // last expression.
-export const typeofProgram = (exp: Program, tenv: TEnv): Result<TExp> =>
-    makeFailure("HW3 2.2 - Implement this function");
+export const typeofProgram = (exp: Program, tenv: TEnv): Result<TExp> => 
+    isNonEmptyList<Exp>(exp.exps) ?
+    helper(rest(exp.exps), tenv, first(exp.exps)) :
+    makeFailure("Program has empty list of expressions");
+
+
+//helper function
+//Purpose: to compute the type of the last expression in exps list.
+/*
+Notes:
+1)first rest are from shared/list
+2)if its not the last exp we want to call the recursive helper with the rest of expressions:
+    either way we pass the rest in order to get to the last ex[] just that fro define we extend the env and for other dont
+*/
+export const helper = (exps: Exp[], tenv: TEnv, current: Exp) : Result<TExp> =>
+    isNonEmptyList<Exp>(exps) ? //exps are rest = remaining after current, and if its non-empty current is not the last
+            isDefineExp(current) ? 
+                bind(typeofDefine(current, tenv), _ =>
+                                                         helper(rest(exps), makeExtendTEnv([current.var.var], [current.var.texp], tenv), first(exps))) :
+                bind(typeofExp(current, tenv), _ => helper(rest(exps), tenv,first(exps))) :
+            typeofExp(current, tenv); //if rest are empty we got here so its the last exp so just return it 
