@@ -91,6 +91,8 @@ export const typeofPrim = (p: PrimOp): Result<TExp> =>
     (p.op === '<') ? numCompTExp :
     (p.op === '=') ? numCompTExp :
     // Important to use a different signature for each op with a TVar to avoid capture
+    //T() for making type var, [] for array of 1 param, makebol for return val - is a num or not?
+    //makeProcTexp has texp params and return val so we have it with(param, isANum??)
     (p.op === 'number?') ? makeOk(makeProcTExp([T()] , makeBoolTExp())) :
     (p.op === 'boolean?') ? makeOk(makeProcTExp([T()] , makeBoolTExp())) :
     (p.op === 'string?') ? makeOk(makeProcTExp([T()] , makeBoolTExp())) :
@@ -102,12 +104,30 @@ export const typeofPrim = (p: PrimOp): Result<TExp> =>
     (p.op === 'string=?') ? makeOk(makeProcTExp([makeStrTExp(), makeStrTExp()] , makeBoolTExp())) :
     (p.op === 'display') ? makeOk(makeProcTExp([T()] , makeVoidTExp())) :
     (p.op === 'newline') ? makeOk(makeProcTExp([] , makeVoidTExp())) :
+    //===================3.1===========================
+    //cons : (T * (list T) -> (list T))
+    //() at the end for apply anonym func
+    //T() twice --> not the same T :(
     (p.op === 'cons') ?
-        makeFailure("HW3 3.1 - Implement this branch") :
+        (() => {
+            const freshType = T();
+            const list = makeListTExp(freshType);
+            //all the list together is an element in array
+            return makeOk(makeProcTExp([freshType, list], list));
+        }) () :
+    //car : ((list T) -> T)    
     (p.op === 'car') ?
-        makeFailure("HW3 3.1 - Implement this branch") :
+            (() => {
+            const freshType = T();
+            const list = makeListTExp(freshType);
+            return makeOk(makeProcTExp([list], freshType));
+        }) () :
+    //cdr : ((list T) -> (list T))
     (p.op === 'cdr') ?
-        makeFailure("HW3 3.1 - Implement this branch") :
+            (() => {
+            const list = makeListTExp(T());
+            return makeOk(makeProcTExp([list], list));
+        }) () :
     makeFailure(`Primitive not yet implemented: ${p.op}`);
 
 // Purpose: compute the type of an if-exp

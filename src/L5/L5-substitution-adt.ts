@@ -33,6 +33,7 @@ export const makeEmptySub = (): Sub => ({tag: "Sub", vars: [], tes: []});
 
 // Purpose: when attempting to bind tvar to te in a sub - check whether tvar occurs in te.
 // Return error if a circular reference is found.
+//checks if a tvar is defined by itself
 export const checkNoOccurrence = (tvar: TVar, te: TExp): Result<true> => {
     const check = (e: TExp): Result<true> =>
         isTVar(e) ? ((e.var === tvar.var) ? bind(unparseTExp(te), up => makeFailure(`Occur check error - circular sub ${tvar.var} in ${format(up)}`)) : 
@@ -40,6 +41,7 @@ export const checkNoOccurrence = (tvar: TVar, te: TExp): Result<true> => {
         isAtomicTExp(e) ? makeOk(true) :
         isProcTExp(e) ? bind(mapResult(check, e.paramTEs), _ => check(e.returnTE)) :
         isListTExp(e) ?
+//=======================================3.2.a================================================================================================        
             makeFailure("HW3 3.2.a - Implement this branch") :
         makeFailure(`Bad type expression ${e} in ${format(te)}`);
     return check(te);
