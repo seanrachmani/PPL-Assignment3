@@ -73,14 +73,26 @@ const reducePoolVarDecls = (fun: (e: A.VarDecl, pool: Pool) => Pool, vds: A.VarD
 //     [NumExp(1), TVar(15)],
 //     [VarRef(x), TVar(14)],
 //     [PrimOp(+), TVar(13)]])
+
+/*
+A for AST and all syntax functions, V for value and all values funcs
+we use reduce to accumulate fresh types for compund nested exps using:
+findvars which collecting us types of exps at current level(before nesting)
+*/
 export const expToPool = (exp: A.Exp): Pool => {
+    //
     const findVars = (e: A.Exp, pool: Pool): Pool =>
         A.isAtomicExp(e) ? extendPool(e, pool) :
         A.isProcExp(e) ? extendPool(e, reducePool(findVars, e.body, reducePoolVarDecls(extendPoolVarDecl, e.args, pool))) :
+        //===================================3.3.a==============================================
+        //islit for '()
         A.isLitExp(e) && V.isEmptySExp(e.val) ?
-            pool : // HW3 3.3.a - fix this branch
+            //simply add new type var for '() exp
+            extendPool(e, pool) : 
+            //same bc according to AST list is one sub exp '(1 2 3) so 1 2 3 arent sub exps like in appExp
         A.isLitExp(e) && V.isCompoundSExp(e.val) ?
-            pool : // HW3 3.3.a - fix this branch
+            extendPool(e, pool) :
+        //===================================3.3.a==============================================
         A.isCompoundExp(e) ? extendPool(e, reducePool(findVars, A.expComponents(e), pool)) :
         makeEmptyPool();
     return findVars(exp, makeEmptyPool());
@@ -138,10 +150,42 @@ export const makeEquationsFromExp = (exp: A.Exp, pool: Pool): Opt.Optional<Equat
                             Opt.mapv(Opt.bind(safeLast(exp.body), (last: A.CExp) => inPool(pool, last)), (ret: T.TExp) =>
                                 [makeEquation(left, T.makeProcTExp(R.map((vd) => vd. texp, exp.args), ret))])) :
     A.isLitExp(exp) ?
+    //===================================3.3.b====================================================
+    /*
+    so what were doing here is to make sure the semantics of list is good aka:
+    for non empty type of cdr and car are the same. 
+    mapv for monada openening aka optional, inpool for getting the te of this exp
+    T for TExp.ts file
+
+    somenotes:
+    mapv is only for the last one otherwise we will give optional from inpool to optional to optional and wrap it unnecessarily
+    
+        the type of empty list is list with fresh tvar <3
+        in the future we add elemnts from generic type, 
+        so we give the ('() cons 5) fresh tvar too, 
+        then when we will solve it we will get emptyFreshVar = GenericActuallyFreshType 
+        */
         (V.isEmptySExp(exp.val) ?
-            Opt.makeNone() : // HW3 3.3.b - fix this branch
-        V.isCompoundSExp(exp.val) ?
-            Opt.makeNone() : // HW3 3.3.b - fix this branch
+            Opt.mapv(inPool(pool, exp), (left: T.TExp) => [makeEquation(left, T.makeListTExp(T.makeFreshTVar()))]) : 
+        //T.TExp is the type of the entire list exp from inpool
+        V.isCompoundSExp(exp.val) ? Opt.bind(inPool(pool, exp), (left: T.TExp) : Opt.Optional<Equation[]> =>{
+            const compound = exp.val;
+            return V.isCompoundSExp(compound) ?
+                //wraaping sexps of cars/cdr in litexp in order to search in pool, then extracting their types.
+                Opt.bind(inPool(pool, A.makeLitExp(compound.val1)), (carTE: T.TExp) =>
+                    Opt.mapv(inPool(pool, A.makeLitExp(compound.val2)), (cdrTE: T.TExp) =>
+                        //we return array of equations
+                        [
+                            //homogeneous: type of list of carT = type of list of cdrT
+                            makeEquation(T.makeListTExp(carTE), cdrTE),
+                            //whole list exp: Tlist variable we gave our listexp = Type of List of car argument
+                            makeEquation(left, T.makeListTExp(carTE))
+                        ]))
+                        //were never goint to get here: 
+                        : Opt.makeNone();
+        }) :
+                
+    //===================================3.3.b====================================================
         isNumber(exp.val) ? Opt.mapv(inPool(pool, exp) , (left: T.TExp) =>
             [ makeEquation(left, T.makeNumTExp()) ]) :
         isBoolean(exp.val) ? Opt.mapv(inPool(pool, exp) , (left: T.TExp) =>
@@ -239,14 +283,20 @@ const solve = (equations: Equation[], sub: S.Sub): Res.Result<S.Sub> => {
            Res.makeFailure(`Equation contains incompatible types ${format(eq)}`);
 };
 
+/*
+================================3.3.c=========================================
+*/
 // Signature: canUnify(equation)
 // Purpose: Compare the structure of the type expressions of the equation
 const canUnify = (eq: Equation): boolean =>
     T.isProcTExp(eq.left) && T.isProcTExp(eq.right) ?
         (eq.left.paramTEs.length === eq.right.paramTEs.length) :
-    // HW3 3.3.c - add missing branch
-    false;
+    T.isListTExp(eq.left) && T.isListTExp(eq.right) ? 
+        true :
+            false;
 
+
+//================================3.3.d=========================================
 // Signature: splitEquation(equation)
 // Purpose: For an equation with unifyable type expressions,
 //          create equations for corresponding components.
@@ -262,5 +312,5 @@ const splitEquation = (eq: Equation): Equation[] =>
         R.zipWith(makeEquation,
                   cons(eq.left.returnTE, eq.left.paramTEs),
                   cons(eq.right.returnTE, eq.right.paramTEs)) :
-    // HW3 3.3.d - add missing branch
-    [];
+    T.isListTExp(eq.left) && T.isListTExp(eq.right) ?
+        [makeEquation(eq.left.itemTE, eq.right.itemTE)] : [] ;
