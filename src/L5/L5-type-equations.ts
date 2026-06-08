@@ -91,7 +91,8 @@ export const expToPool = (exp: A.Exp): Pool => {
             extendPool(e, pool) : 
             //same bc according to AST list is one sub exp '(1 2 3) so 1 2 3 arent sub exps like in appExp
         A.isLitExp(e) && V.isCompoundSExp(e.val) ?
-            extendPool(e, pool) :
+            //reducepool & findvars help us takes car and cdr exps and give them fresh types and add them to pool
+            extendPool(e, reducePool(findVars, [A.makeLitExp(e.val.val1), A.makeLitExp(e.val.val2)], pool)) :
         //===================================3.3.a==============================================
         A.isCompoundExp(e) ? extendPool(e, reducePool(findVars, A.expComponents(e), pool)) :
         makeEmptyPool();
