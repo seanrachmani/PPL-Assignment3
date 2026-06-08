@@ -34,15 +34,17 @@ export const makeEmptySub = (): Sub => ({tag: "Sub", vars: [], tes: []});
 // Purpose: when attempting to bind tvar to te in a sub - check whether tvar occurs in te.
 // Return error if a circular reference is found.
 //checks if a tvar is defined by itself
+//check is recursive inside func. te is the starting point
 export const checkNoOccurrence = (tvar: TVar, te: TExp): Result<true> => {
     const check = (e: TExp): Result<true> =>
+        //isvar aka we got to base case, if e.var == tvar.var its circular!not good
         isTVar(e) ? ((e.var === tvar.var) ? bind(unparseTExp(te), up => makeFailure(`Occur check error - circular sub ${tvar.var} in ${format(up)}`)) : 
                                             makeOk(true)) :
         isAtomicTExp(e) ? makeOk(true) :
         isProcTExp(e) ? bind(mapResult(check, e.paramTEs), _ => check(e.returnTE)) :
         isListTExp(e) ?
 //=======================================3.2.a================================================================================================        
-            makeFailure("HW3 3.2.a - Implement this branch") :
+        check(e.itemTE) :
         makeFailure(`Bad type expression ${e} in ${format(te)}`);
     return check(te);
 };
@@ -69,9 +71,18 @@ export const subGet = (sub: Sub, v: TVar): TExp => {
 export const applySub = (sub: Sub, te: TExp): TExp =>
     isEmptySub(sub) ? te :
     isAtomicTExp(te) ? te :
+    //where the actual exchange. if we have map for te in sub , subget will return it
     isTVar(te) ? subGet(sub, te) :
+    //makenew procTExp according to mapped types we got from sub 
     isProcTExp(te) ? makeProcTExp(map((te) => applySub(sub, te), te.paramTEs), applySub(sub, te.returnTE)) :
-    /* isListTExp(te) ? // HW3 3.2.b - Implement this branch  : */
+    //============================3.2.b==============================================================
+    /*
+    we want to return new exp with exchanged things according to sub,
+    so we want to take in our case list.te and change all its showing in exp with what the sub saying
+    */
+   //were saying: if we find mapping applysub will return us the mapped type exp, so lets make new listTExp with the mapped
+   //te is listTEXP and te.itemTE is texp which mean what is the type of the elemnts in the list
+    isListTExp(te) ? makeListTExp(applySub(sub, te.itemTE)) :
     te;
 
 // ============================================================
